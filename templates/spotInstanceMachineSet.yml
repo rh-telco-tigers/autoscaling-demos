@@ -1,0 +1,67 @@
+apiVersion: machine.openshift.io/v1beta1
+kind: MachineSet
+metadata:
+  annotations:
+    machine.openshift.io/GPU: '0'
+    machine.openshift.io/memoryMb: '8192'
+    machine.openshift.io/vCPU: '2'
+  name: mark-vwwcf-worker-us-east-2a-spot
+ namespace: openshift-machine-api
+  labels:
+    machine.openshift.io/cluster-api-cluster: mark-vwwcf
+spec:
+  replicas: 0
+  selector:
+    matchLabels:
+      machine.openshift.io/cluster-api-cluster: mark-vwwcf
+      machine.openshift.io/cluster-api-machineset: mark-vwwcf-worker-us-east-2a-spot
+  template:
+    metadata:
+      labels:
+        machine.openshift.io/cluster-api-cluster: mark-vwwcf
+        machine.openshift.io/cluster-api-machine-role: worker
+        machine.openshift.io/cluster-api-machine-type: worker
+        machine.openshift.io/cluster-api-machineset: mark-vwwcf-worker-us-east-2a-spot
+    spec:
+      metadata: {}
+      providerSpec:
+        value:
+          spotMarketOptions: {}
+          userDataSecret:
+            name: worker-user-data
+          placement:
+            availabilityZone: us-east-2a
+            region: us-east-2
+          credentialsSecret:
+            name: aws-cloud-credentials
+          instanceType: m5.large
+          metadata:
+            creationTimestamp: null
+          blockDevices:
+            - ebs:
+                encrypted: true
+                iops: 0
+                kmsKey:
+                  arn: ''
+                volumeSize: 120
+                volumeType: gp2
+          securityGroups:
+            - filters:
+                - name: 'tag:Name'
+                  values:
+                    - mark-vwwcf-worker-sg
+          kind: AWSMachineProviderConfig
+          tags:
+            - name: kubernetes.io/cluster/mark-vwwcf
+              value: owned
+          deviceIndex: 0
+          ami:
+            id: ami-0a1f868ad58ea59a7
+          subnet:
+            filters:
+              - name: 'tag:Name'
+                values:
+                  - mark-vwwcf-private-us-east-2a
+          apiVersion: awsproviderconfig.openshift.io/v1beta1
+          iamInstanceProfile:
+            id: mark-vwwcf-worker-profile
