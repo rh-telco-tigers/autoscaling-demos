@@ -1,12 +1,16 @@
-# Using Cluster Autoscaler
+# Autoscaling Pods and Machines in OpenShift
 
 ## Table of Contents
 
 <!-- TOC -->
-- [Using Cluster Autoscaler](#using-cluster-autoscaler)
+- [Autoscaling Pods and Machines in OpenShift](#autoscaling-pods-and-machines-in-openshift)
   - [Table of Contents](#table-of-contents)
   - [Introduction](#introduction)
   - [Prerequisites](#prerequisites)
+  - [Horizontal Pod Autoscaling](#horizontal-pod-autoscaling)
+    - [Deploying a sample app that will use memory](#deploying-a-sample-app-that-will-use-memory)
+    - [Create Horizontal Pod Autoscaler](#create-horizontal-pod-autoscaler)
+    - [Exercising the Horizontal Pod Autoscaler](#exercising-the-horizontal-pod-autoscaler)
   - [Leveraging Cluster Autoscaling](#leveraging-cluster-autoscaling)
     - [Create a Cluster Autoscaler](#create-a-cluster-autoscaler)
     - [Create a Machine Autoscaler](#create-a-machine-autoscaler)
@@ -21,18 +25,101 @@
 
 ## Introduction
 
-This guide will take you through leveraging the OpenShift Machine Autoscaler in an AWS hosted cluster. The steps provided below will work for any OpenShift cluster that was built with the OpenShift "IPI" installer process (such as AWS, Azure and VMWare).
+This guide will take you through leveraging the OpenShift autoscaling functionality. This includes both the Horizontal Pod Autoscaler as well as the Machine Autoscaler in an AWS hosted cluster. The steps provided below will work for any OpenShift cluster that was built with the OpenShift "IPI" installer process (such as AWS, Azure and VMWare).
 
 ## Prerequisites
 
-You will need to have a cluster built with the IPI installer process. Please see the [OpenShift Install Documentation](https://docs.openshift.com/container-platform/4.6/welcome/index.html) for the process to install OpenShift.
+In order to exercise the Machine Autoscaler, you will need to have a cluster built with the IPI installer process. Please see the [OpenShift Install Documentation](https://docs.openshift.com/container-platform/4.6/welcome/index.html) for the process to install OpenShift.
+
+## Horizontal Pod Autoscaling
+
+This guide will take you through leveraging the OpenShift Machine Autoscaler in an AWS hosted cluster. The steps provided below will work for any OpenShift cluster that was built with the OpenShift "IPI" installer process (such as AWS, Azure and VMWare).
+
+### Deploying a sample app that will use memory
+
+Start by creating a new project `oc new-project memuser`
+
+We will use a small program called [memuser](https://gitlab.com/xphyr/k8s_memuser) that can allocate and hold onto memory, or de-allocate memory based on two http endpoints. You are welcome to compile your own version of the program or, you may use a prebuilt image hosted on Quay.io [here](https://quay.io/repository/xphyr/memuser). The application definitions in this repo will automatically use the Quay.io hosted image. 
+
+Start by deploying the memuser application and creating a service and route within OpenShift:
+
+```
+$ oc new-project memuser
+$ oc create -f podAutoscaling/deployment.yml
+deployment.apps/memuser created
+$ oc create -f podAutoscaling/service.yml
+service/memuserservice created
+$ oc expose svc/memuserservice
+$ oc get route
+NAME             HOST/PORT                                       PATH   SERVICES         PORT       TERMINATION   WILDCARD
+memuserservice   memuserservice-memuser.apps.cluster.example.com         memuserservice   8080-tcp                 None
+```
+
+We have now deployed our memuser application and made it available to the outside world.  Lets curl the endpoint and see what we get. Be sure to update the URL in the commands below to point to your specific url.
+
+```
+$ curl http://memuserservice-memuser.apps.cluster.example.com/consumemem
+Hello User. My current memory usage is:
+ Alloc = 50 MiB	 TotalAlloc = 50 MiB	 Sys = 70 MiB	 NumGC = 4
+# Lets run it a few more times
+$ curl http://memuserservice-memuser.apps.cluster.example.com/consumemem
+Hello User. My current memory usage is:
+ Alloc = 100 MiB	 TotalAlloc = 100 MiB	 Sys = 136 MiB	 NumGC = 5
+$ curl http://memuserservice-memuser.apps.cluster.example.com/consumemem
+Hello User. My current memory usage is:
+ Alloc = 150 MiB	 TotalAlloc = 100 MiB	 Sys = 136 MiB	 NumGC = 5
+```
+
+Note that each time you run it, it consumes 50Mb more. Now let's run a GC and clean up the memory currently in use:
+
+```
+$ curl http://memuserservice-memuser.apps.cluster.example.com/clearmem
+Memory has been cleared.
+ Alloc = 0 MiB	 TotalAlloc = 150 MiB	 Sys = 202 MiB	 NumGC = 8
+```
+
+Note that the Alloc memory is now 0 MiB but Sys is 202 MiB. This is due to the way Go handles memory allocation. It will eventually give that memory up. So we now have a way to consume memory, and to clear up that memory usage. The program is designed to only use so much memory though, to ensure we don't crash your server. Lets try running the memory usage up. Copy/paste the following script and run it:
+
+```
+$ for i in {1..30}; do curl http://memuserservice-memuser.apps.cluster.example.com/consumemem; done
+$ curl http://memuserservice-memuser.apps.cluster.example.com/clearmem
+```
+
+Note that eventually Alloc stops growing. This is a failsafe to ensure you dont run out of memory.
+
+### Create Horizontal Pod Autoscaler
+
+Now that we have a way to consume and clean up memory, lets create a horizontal pod autoscaler that scales based on memory. Review the file "hpa-memuser.yml" and then apply to your cluster:
+
+```
+# First lets clear the memory usage
+$ oc create -f podAutoscaling/hpa-memuser.yml
+$ oc get hpa
+```
+
+This autoscaler will scale when the memory usage of a given pod goes above 80%. It will then try to keep the average memory usage across all the deployed pods at or below 80%. Lets watch the autoscaler work.
+
+### Exercising the Horizontal Pod Autoscaler
+
+```
+$ watch oc get hpa
+```
+
+Now in a new window, run our curl command again to start ramping up our memory usage:
+
+```
+$ for i in {1..30}; do curl http://memuserservice-memuser.apps.cluster.example.com/consumemem; done
+```
+
+Now go back and check the other window. You should start to see the hpa scale up your workload based on the overall memory usage. It may take a minute or two for it to pick up the usage and start to scale up. Re-run the for loop again, and watch the output of the hpa. It will continue to scale up to a max of 10 pods.
+
+HorizontalPodAutoscaler will also scale pods back down when not using the memory. Lets clear the memory usage so we can see the pods scale back down. Run `http://memuserservice-memuser.apps.cluster.example.com/clearmem` until all pods are showing no memory allocations. Wait about 5 minutes, you should see the horizontal pod autoscaler start to scale the number of pods back down again. If you want to see it slowly scale back, only run the clearmem command 2 times to ensure you leave some pods still using memory.
 
 ## Leveraging Cluster Autoscaling
 
 ### Create a Cluster Autoscaler
 
-The cluster autoscaler adds and removes machines from a cluster to match the workload demand. The Cluster Autoscaler is
-managed by an operator.
+The cluster autoscaler adds and removes machines from a cluster to match the workload demand. The Cluster Autoscaler is managed by an operator.
 
 To view the operator, execute the following:
 
@@ -40,7 +127,7 @@ To view the operator, execute the following:
 
 Create an instance of the cluster-autoscaler-operator
 
-`oc create -f templates/clusterAutoScaler.yml`
+`oc create -f machineAutoscaling/templates/clusterAutoScaler.yml`
 
 Validate that the clusterAutoScaler was created
 
@@ -58,12 +145,12 @@ Start by listing out the machineSets that you have available in your cluster:
 
 `oc get machinesets -n openshift-machine-api`
 
-We will leverage these existing machineSets in our MachineAutoScaler definition. Update the `templates/machineAutoScaler.yml` file, replacing \<machineSetName\> with the name of a machine set from the above output.  If you want to enable autoscaling for mulitple machine sets, create multiple copies of the `templates/machineAutoScaler.yml` for each machineset you wish to autoexpand updating the required fields as appropriate.
+We will leverage these existing machineSets in our MachineAutoScaler definition. Update the `machineAutoscaling/templates/machineAutoScaler.yml` file, replacing \<machineSetName\> with the name of a machine set from the above output.  If you want to enable autoscaling for mulitple machine sets, create multiple copies of the `machineAutoscaling/templates/machineAutoScaler.yml` for each machineset you wish to autoexpand updating the required fields as appropriate.
 
 Apply the machineAutoScaler files to your cluster:
 
 ```
-$ oc create -f templates/machineAutoScaler.yml
+$ oc create -f machineAutoscaling/templates/machineAutoScaler.yml
 $ oc get machineautoscaler -n openshift-machine-api
 NAME                                     REF KIND     REF NAME                       MIN   MAX   AGE
 autoscale-mark-vwwcf-worker-us-east-2a   MachineSet   mark-vwwcf-worker-us-east-2a   1     3     6h2m
@@ -76,7 +163,7 @@ In order to test the autoscaling we will use a workqueue
 
 ```
 $ oc new-project work-queue
-$ oc create -f templates/work-queue.yml
+$ oc create -f machineAutoscaling/templates/work-queue.yml
 $ oc get jobs
 ```
 
@@ -180,11 +267,11 @@ mark-vwwcf-worker-us-east-2b-spot   0         0                             10s
 mark-vwwcf-worker-us-east-2c        1         1         1       1           27h
 ```
 
-Note that the autoscaler exists, but has not started any spot instances. We will use a job queue that is designed to target the spot instances to exercise this autoscaler. Look at the file `templates/work-queue-spot.yml`.  Note that there is a field "nodeSelector.spotInstance: true". This tells kubernetes to only schedule this on nodes that have that label. If you remember when we created the new "spot" machineSets we added a label called "spotInstance: true".
+Note that the autoscaler exists, but has not started any spot instances. We will use a job queue that is designed to target the spot instances to exercise this autoscaler. Look at the file `machineAutoscaling/templates/work-queue-spot.yml`.  Note that there is a field "nodeSelector.spotInstance: true". This tells kubernetes to only schedule this on nodes that have that label. If you remember when we created the new "spot" machineSets we added a label called "spotInstance: true".
 
 ```
 $ oc new-project work-queue
-$ oc create -f templates/work-queue-spot.yml
+$ oc create -f machineAutoscaling/templates/work-queue-spot.yml
 $ oc get jobs -w
 # when you are done watching the jobs hit CTRL+C to stop the watch command
 ```
