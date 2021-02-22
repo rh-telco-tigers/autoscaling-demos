@@ -127,7 +127,7 @@ To view the operator, execute the following:
 
 Create an instance of the cluster-autoscaler-operator
 
-`oc create -f machineAutoscaling/templates/clusterAutoScaler.yml`
+`oc create -f machineAutoscaling/clusterAutoScaler.yml`
 
 Validate that the clusterAutoScaler was created
 
@@ -145,12 +145,12 @@ Start by listing out the machineSets that you have available in your cluster:
 
 `oc get machinesets -n openshift-machine-api`
 
-We will leverage these existing machineSets in our MachineAutoScaler definition. Update the `machineAutoscaling/templates/machineAutoScaler.yml` file, replacing \<machineSetName\> with the name of a machine set from the above output.  If you want to enable autoscaling for mulitple machine sets, create multiple copies of the `machineAutoscaling/templates/machineAutoScaler.yml` for each machineset you wish to autoexpand updating the required fields as appropriate.
+We will leverage these existing machineSets in our MachineAutoScaler definition. Update the `machineAutoscaling/machineAutoScaler.yml` file, replacing \<machineSetName\> with the name of a machine set from the above output.  If you want to enable autoscaling for mulitple machine sets, create multiple copies of the `machineAutoscaling/machineAutoScaler.yml` for each machineset you wish to autoexpand updating the required fields as appropriate.
 
 Apply the machineAutoScaler files to your cluster:
 
 ```
-$ oc create -f machineAutoscaling/templates/machineAutoScaler.yml
+$ oc create -f machineAutoscaling/machineAutoScaler.yml
 $ oc get machineautoscaler -n openshift-machine-api
 NAME                                     REF KIND     REF NAME                       MIN   MAX   AGE
 autoscale-mark-vwwcf-worker-us-east-2a   MachineSet   mark-vwwcf-worker-us-east-2a   1     3     6h2m
@@ -163,7 +163,7 @@ In order to test the autoscaling we will use a workqueue
 
 ```
 $ oc new-project work-queue
-$ oc create -f machineAutoscaling/templates/work-queue.yml
+$ oc create -f machineAutoscaling/work-queue.yml
 $ oc get jobs
 ```
 
@@ -267,11 +267,11 @@ mark-vwwcf-worker-us-east-2b-spot   0         0                             10s
 mark-vwwcf-worker-us-east-2c        1         1         1       1           27h
 ```
 
-Note that the autoscaler exists, but has not started any spot instances. We will use a job queue that is designed to target the spot instances to exercise this autoscaler. Look at the file `machineAutoscaling/templates/work-queue-spot.yml`.  Note that there is a field "nodeSelector.spotInstance: true". This tells kubernetes to only schedule this on nodes that have that label. If you remember when we created the new "spot" machineSets we added a label called "spotInstance: true".
+Note that the autoscaler exists, but has not started any spot instances. We will use a job queue that is designed to target the spot instances to exercise this autoscaler. Look at the file `machineAutoscaling/work-queue-spot.yml`.  Note that there is a field "nodeSelector.spotInstance: true". This tells kubernetes to only schedule this on nodes that have that label. If you remember when we created the new "spot" machineSets we added a label called "spotInstance: true".
 
 ```
 $ oc new-project work-queue
-$ oc create -f machineAutoscaling/templates/work-queue-spot.yml
+$ oc create -f machineAutoscaling/work-queue-spot.yml
 $ oc get jobs -w
 # when you are done watching the jobs hit CTRL+C to stop the watch command
 ```
