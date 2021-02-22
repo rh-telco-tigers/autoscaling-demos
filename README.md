@@ -60,14 +60,14 @@ We have now deployed our memuser application and made it available to the outsid
 ```
 $ curl http://memuserservice-memuser.apps.cluster.example.com/consumemem
 Hello User. My current memory usage is:
- Alloc = 50 MiB	 TotalAlloc = 50 MiB	 Sys = 70 MiB	 NumGC = 4
+ Alloc = 50 MiB	 Sys = 70 MiB	 NumGC = 4
 # Lets run it a few more times
 $ curl http://memuserservice-memuser.apps.cluster.example.com/consumemem
 Hello User. My current memory usage is:
- Alloc = 100 MiB	 TotalAlloc = 100 MiB	 Sys = 136 MiB	 NumGC = 5
+ Alloc = 100 MiB  Sys = 136 MiB	 NumGC = 5
 $ curl http://memuserservice-memuser.apps.cluster.example.com/consumemem
 Hello User. My current memory usage is:
- Alloc = 150 MiB	 TotalAlloc = 100 MiB	 Sys = 136 MiB	 NumGC = 5
+ Alloc = 150 MiB	Sys = 136 MiB	 NumGC = 5
 ```
 
 Note that each time you run it, it consumes 50Mb more. Now let's run a GC and clean up the memory currently in use:
@@ -75,7 +75,7 @@ Note that each time you run it, it consumes 50Mb more. Now let's run a GC and cl
 ```
 $ curl http://memuserservice-memuser.apps.cluster.example.com/clearmem
 Memory has been cleared.
- Alloc = 0 MiB	 TotalAlloc = 150 MiB	 Sys = 202 MiB	 NumGC = 8
+ Alloc = 0 MiB	Sys = 202 MiB	 NumGC = 8
 ```
 
 Note that the Alloc memory is now 0 MiB but Sys is 202 MiB. This is due to the way Go handles memory allocation. It will eventually give that memory up. So we now have a way to consume memory, and to clear up that memory usage. The program is designed to only use so much memory though, to ensure we don't crash your server. Lets try running the memory usage up. Copy/paste the following script and run it:
