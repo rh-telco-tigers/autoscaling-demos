@@ -184,7 +184,7 @@ $ oc delete machineautoscaler/autoscale-mark-vwwcf-worker-us-east-2b -n openshif
 
 ### Using Spot instances in AWS with AutoScaling
 
-AWS has the concept of [spot instances](https://aws.amazon.com/aws-cost-management/aws-cost-optimization/spot-instances/). These can be a less costly way to run your cluster and handle burst requirements at a low cost, with some limitations. Be sure to fully understand how spot instances work before implementing them in your cluster. This example will show you how to create a machineset that leverages spot instances, and scales them up based on demand, and 
+AWS has the concept of [spot instances](https://aws.amazon.com/aws-cost-management/aws-cost-optimization/spot-instances/). These can be a less costly way to run your cluster and handle burst requirements at a low cost, with some limitations. Be sure to fully understand how spot instances work before implementing them in your cluster. This example will show you how to create a machineset that leverages spot instances, and scales them up based on demand, and scales them down again when they are no longer needed.
 
 ### Create a new machineSet for spot instances
 
