@@ -1,7 +1,8 @@
-apiVersion: autoscaling/v2beta1
+apiVersion: autoscaling/v2beta2
 kind: HorizontalPodAutoscaler
 metadata:
   name: hpa-resource-metrics-memory
+  namespace: memuser
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
@@ -13,4 +14,28 @@ spec:
   - type: Resource
     resource:
       name: memory
-      targetAverageUtilization: 80
+      target:
+       averageUtilization: 80
+       type: Utilization
+  behavior:
+    scaleDown: 
+      policies: 
+      - type: Pods 
+        value: 4 
+        periodSeconds: 10 
+      - type: Percent
+        value: 50 
+        periodSeconds: 10
+      selectPolicy: Min 
+      stabilizationWindowSeconds: 0 
+    scaleUp: 
+      policies:
+      - type: Pods
+        value: 5 
+        periodSeconds: 10
+      - type: Percent
+        value: 12 
+        periodSeconds: 10
+      selectPolicy: Max
+      stabilizationWindowSeconds: 0
+...
