@@ -11,11 +11,10 @@
     - [Deploying a sample app that will use memory](#deploying-a-sample-app-that-will-use-memory)
     - [Create Horizontal Pod Autoscaler](#create-horizontal-pod-autoscaler)
     - [Exercising the Horizontal Pod Autoscaler](#exercising-the-horizontal-pod-autoscaler)
-  - [Leveraging Cluster Autoscaling](#leveraging-cluster-autoscaling)
   - [Vertical Pod Autoscaling](#vertical-pod-autoscaling)
     - [Installing VPA Operator](#installing-vpa-operator)
     - [Implementing the VPA](#implementing-the-vpa)
-  - [Leveraging Cluster Autoscaling](#leveraging-cluster-autoscaling-1)
+  - [Cluster Autoscaling](#cluster-autoscaling)
     - [Create a Cluster Autoscaler](#create-a-cluster-autoscaler)
     - [Create a Machine Autoscaler](#create-a-machine-autoscaler)
     - [Exercising the Autoscaling Feature](#exercising-the-autoscaling-feature)
@@ -121,8 +120,6 @@ HorizontalPodAutoscaler will also scale pods back down when not using the memory
 
 For additional information on the use of Horizontal Pod Autoscalers, see [https://docs.openshift.com/container-platform/4.7/nodes/pods/nodes-pods-autoscaling.html](https://docs.openshift.com/container-platform/4.7/nodes/pods/nodes-pods-autoscaling.html)
 
-## Leveraging Cluster Autoscaling
-
 ## Vertical Pod Autoscaling
 
 The OpenShift Container Platform Vertical Pod Autoscaler Operator (VPA) automatically reviews the historic and current CPU and memory resources for containers in pods and can update the resource limits and requests based on the usage values it learns. The Vertical Pod Autoscaler (VPA) is not installed by default within your cluster, however it can be easily enabled through the use of OperatorHub.
@@ -189,7 +186,7 @@ In the above output you will see that the recommendation for this particular dep
 
 For additional information on the use of Vertical Pod Autoscalers, see [https://docs.openshift.com/container-platform/4.7/nodes/pods/nodes-pods-vertical-autoscaler.html](https://docs.openshift.com/container-platform/4.7/nodes/pods/nodes-pods-vertical-autoscaler.html)
 
-## Leveraging Cluster Autoscaling
+## Cluster Autoscaling
 
 ### Create a Cluster Autoscaler
 
