@@ -190,7 +190,13 @@ For additional information on the use of Vertical Pod Autoscalers, see [https://
 
 ### Create a Cluster Autoscaler
 
-The cluster autoscaler adds and removes machines from a cluster to match the workload demand. The Cluster Autoscaler is managed by an operator.
+The cluster autoscaler adds and removes machines from a cluster to match the workload demand. The Cluster Autoscaler is managed by an operator. Cluster Autoscaling is only supported on clusters where the machine API is operational:
+
+* AWS
+* Azure
+* vSphere
+* Google Cloud
+* Bare Metal
 
 To view the operator, execute the following:
 
@@ -216,7 +222,7 @@ Start by listing out the machineSets that you have available in your cluster:
 
 `oc get machinesets -n openshift-machine-api`
 
-We will leverage these existing machineSets in our MachineAutoScaler definition. Update the `machineAutoscaling/machineAutoScaler.yml` file, replacing \<machineSetName\> with the name of a machine set from the above output.  If you want to enable autoscaling for mulitple machine sets, create multiple copies of the `machineAutoscaling/machineAutoScaler.yml` for each machineset you wish to autoexpand updating the required fields as appropriate.
+We will leverage these existing machineSets in our MachineAutoScaler definition. Update the `machineAutoscaling/machineAutoScaler.yml` file, replacing \<machineSetName\> with the name of a machine set from the above output. If you want to enable autoscaling for mulitple machine sets, create multiple copies of the `machineAutoscaling/machineAutoScaler.yml` for each machineset you wish to autoexpand updating the required fields as appropriate.
 
 Apply the machineAutoScaler files to your cluster:
 
@@ -230,13 +236,22 @@ autoscale-mark-vwwcf-worker-us-east-2b   MachineSet   mark-vwwcf-worker-us-east-
 
 ### Exercising the Autoscaling Feature
 
-In order to test the autoscaling we will use a workqueue 
+In order to test the autoscaling we will use a workqueue. Our workqueue will build up a backlog of pods that need to be run. The pods start up a busybox instances and then pause for 300 seconds.
 
 ```shell
-$ oc new-project work-queue
+$ 
 $ oc create -f machineAutoscaling/work-queue.yml
 $ oc get jobs
 ```
+
+Check to see that you have pods pending by running `oc get pods`. You should see a number of pods in a Pending state. Check the state of your machineAutoScaler:
+
+```
+$ oc get machineautoscaler -n openshift-machine-api
+NAME                           REF KIND     REF NAME             MIN   MAX   AGE
+autoscale-ocp47-jzgl9-worker   MachineSet   ocp47-jzgl9-worker   4     6     2m23s
+```
+
 
 ### Cleanup AutoScaling
 
