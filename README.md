@@ -252,6 +252,15 @@ NAME                           REF KIND     REF NAME             MIN   MAX   AGE
 autoscale-ocp47-jzgl9-worker   MachineSet   ocp47-jzgl9-worker   4     6     2m23s
 ```
 
+After a short period of time, you will see that your cluster starts to scale up adding additional worker nodes in order to handle the large number of pending pods. You can check this by checking your machineSets:
+
+```
+$ oc get machinesets -n openshift-machine-api
+NAME                 DESIRED   CURRENT   READY   AVAILABLE   AGE
+ocp47-jzgl9-worker   6         4         4       4           69d
+```
+
+Note that the desired count has increased and if you check your Cloud Provider console you should see that OpenShift has started to scale the number of worker nodes up to 6.
 
 ### Cleanup AutoScaling
 
