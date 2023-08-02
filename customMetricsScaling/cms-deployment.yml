@@ -1,0 +1,42 @@
+apiVersion: v1
+kind: Service
+metadata:
+ name: memuser-svc
+ labels:
+   app: memuser
+spec:
+ ports:
+   # the port that this service should serve on
+ - port: 8080
+   targetPort: 8080
+   name: web
+ selector:
+   app: memuser
+ type: ClusterIP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mem-user
+  labels:
+    app: memuser
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: memuser
+  template:
+    metadata:
+      labels:
+        app: memuser
+    spec:
+      containers:
+      - name: memuser
+        image: ghcr.io/xphyr/k8s_memuser_advanced:latest
+        command: ["/app/memuser"]
+        args: ["-memory=300", "-fast=true"]
+        resources:
+          requests:
+            memory: "10Mi"
+          limits:
+            memory: "100Mi"

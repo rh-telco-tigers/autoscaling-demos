@@ -14,6 +14,7 @@
   - [Vertical Pod Autoscaling](#vertical-pod-autoscaling)
     - [Installing VPA Operator](#installing-vpa-operator)
     - [Implementing the VPA](#implementing-the-vpa)
+  - [Custom Metrics Autoscaling](#custom-metrics-autoscaling)
   - [Cluster Autoscaling](#cluster-autoscaling)
     - [Create a Cluster Autoscaler](#create-a-cluster-autoscaler)
     - [Create a Machine Autoscaler](#create-a-machine-autoscaler)
@@ -153,7 +154,7 @@ If you open the vpa-memuser.yml file you will see that "updateMode" is set to "o
 * **Inital** - applies VPA recommendation at pod creation time
 * **Off** - only provides recommended resource limits and requests, but does not update your deployments
 
-The VPA will take a few minutes to build its first recomendation. 
+The VPA will take a few minutes to build its first recommendation. 
 
 ```shell
 $ oc get vpa vpa-recommender --output yaml
@@ -185,6 +186,10 @@ status:
 In the above output you will see that the recommendation for this particular deployment is between 25 milicores and 1.5 milicores. Memory recommendations will take longer to stabilize.
 
 For additional information on the use of Vertical Pod Autoscalers, see [https://docs.openshift.com/container-platform/4.7/nodes/pods/nodes-pods-vertical-autoscaler.html](https://docs.openshift.com/container-platform/4.7/nodes/pods/nodes-pods-vertical-autoscaler.html)
+
+## Custom Metrics Autoscaling
+
+This topic is covered in a separate [README.md](customMetricsScaling/README.md) file because there is additional setup required to use custom metrics. Please see this file for a demo/tutorial on using custom Metrics to trigger autoscaling.
 
 ## Cluster Autoscaling
 

@@ -1,0 +1,30 @@
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: prom-scaledobject-memuser
+  namespace: cmstest
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1 
+    name: mem-user 
+    kind: Deployment 
+  cooldownPeriod:  200 
+  maxReplicaCount: 10 
+  minReplicaCount: 1
+  fallback: 
+    failureThreshold: 3
+    replicas: 2
+  pollingInterval: 30 
+  advanced:
+    restoreToOriginalReplicaCount: false 
+  triggers:
+    - type: prometheus 
+      metadata:
+        serverAddress: https://thanos-querier.openshift-monitoring.svc.cluster.local:9092 
+        namespace: cmstest 
+        metricName: http_requests_total 
+        threshold: '5' 
+        query: sum(rate(http_requests_total{job="memuser-svc"}[1m])) 
+        authModes: "bearer"
+      authenticationRef: 
+        name: keda-trigger-auth-prometheus
