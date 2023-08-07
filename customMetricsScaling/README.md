@@ -305,7 +305,36 @@ spec:
         name: keda-trigger-auth-prometheus
 ```
 
-We now need a way to increase the rate of traffic going to our applciation. For this we will use [siege](https://github.com/JoeDog/siege)
+We now need a way to increase the rate of traffic going to our application. For this we will use [siege](https://github.com/JoeDog/siege). Run `siege` against the URL for the application and leave it running. This will create traffic to the test site, and start to drive up HTTP requests.
+
+```sh
+$ siege http://memuser-svc-cmstest.apps.test.example.com
+```
+
+Siege will generate a large number of requests against the application, and drive up the http_requests_total counter. This will then trigger the Custom Metrics Autoscaler to scale the memuser deployment up to meet the demand. You can watch this occur:
+
+```sh
+$ oc get hpa --watch
+NAME                                 REFERENCE             TARGETS     MINPODS   MAXPODS   REPLICAS   AGE
+keda-hpa-prom-scaledobject-memuser   Deployment/mem-user   0/5 (avg)   1         10        1          5d6h
+keda-hpa-prom-scaledobject-memuser   Deployment/mem-user   0/5 (avg)   1         10        1          5d6h
+keda-hpa-prom-scaledobject-memuser   Deployment/mem-user   0/5 (avg)   1         10        1          5d6h
+keda-hpa-prom-scaledobject-memuser   Deployment/mem-user   57260m/5 (avg)   1         10        1          5d6h
+keda-hpa-prom-scaledobject-memuser   Deployment/mem-user   66561m/5 (avg)   1         10        4          5d6h
+keda-hpa-prom-scaledobject-memuser   Deployment/mem-user   60445m/5 (avg)   1         10        8          5d6h
+keda-hpa-prom-scaledobject-memuser   Deployment/mem-user   66605m/5 (avg)   1         10        10         5d6h
+keda-hpa-prom-scaledobject-memuser   Deployment/mem-user   64289m/5 (avg)   1         10        10         5d6h
+```
+
+Note that as time goes on the number of Replicas continues to increase but Maxes out at 10. If you stop the `siege` process, and wait, you will see the number of Replicas start to decrease.
+
+```sh
+$ oc get hpa --watch
+NAME                                 REFERENCE             TARGETS     MINPODS   MAXPODS   REPLICAS   AGE
+keda-hpa-prom-scaledobject-memuser   Deployment/mem-user   0/5 (avg)        1         10        10         5d6h
+keda-hpa-prom-scaledobject-memuser   Deployment/mem-user   0/5 (avg)        1         10        10         5d6h
+keda-hpa-prom-scaledobject-memuser   Deployment/mem-user   0/5 (avg)        1         10        1          5d6h
+```
 
 ## References:
 
